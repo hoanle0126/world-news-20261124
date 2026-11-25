@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, statSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ENTRY_DIR = '/home/hoanle0126/.cache/bounty-verify/makefun-news-image-20261124/entry';
@@ -14,6 +14,7 @@ function toDataUri(path) {
 const tpl = readFileSync(join(ENTRY_DIR, 'render/poster.html'), 'utf8');
 const html = tpl
   .replace('{{HERO_GULF}}', toDataUri(join(ART_DIR, 'hero-gulf.png')))
+  .replace('{{MARKETS_CHIP}}', toDataUri(join(ART_DIR, 'markets-chip.png')))
   .replace('{{EUROPE_STRIKE}}', toDataUri(join(ART_DIR, 'europe-strike.png')))
   .replace('{{AFRICA_EBOLA}}', toDataUri(join(ART_DIR, 'africa-ebola.png')));
 
@@ -47,10 +48,10 @@ rgb = im.convert("RGB")
 rgb.save("${outPng}", format="PNG", optimize=True, compress_level=9)
 sz = os.path.getsize("${outPng}")
 print("Lossless optimized PNG bytes:", sz)
-if sz > 620000:
+if sz > 720000:
     q = rgb.quantize(colors=256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
     q.save("${outPng}", format="PNG", optimize=True, compress_level=9)
-    print("Quantized 256-color PNG bytes:", os.path.getsize("${outPng}"))
+    print("Quantized PNG bytes:", os.path.getsize("${outPng}"))
 rgb.resize((300, 300), Image.LANCZOS).save("${thumbPng}", format="PNG", optimize=True, compress_level=9)
 Image.open("${outPng}").verify()
 print("Verified PNG integrity OK")
