@@ -14,7 +14,6 @@ function toDataUri(path) {
 const tpl = readFileSync(join(ENTRY_DIR, 'render/poster.html'), 'utf8');
 const html = tpl
   .replace('{{HERO_GULF}}', toDataUri(join(ART_DIR, 'hero-gulf.png')))
-  .replace('{{MARKETS_CHIP}}', toDataUri(join(ART_DIR, 'markets-chip.png')))
   .replace('{{EUROPE_STRIKE}}', toDataUri(join(ART_DIR, 'europe-strike.png')))
   .replace('{{AFRICA_EBOLA}}', toDataUri(join(ART_DIR, 'africa-ebola.png')));
 
@@ -27,30 +26,32 @@ execFileSync('/usr/bin/google-chrome', [
   '--headless=new',
   '--disable-gpu',
   '--no-sandbox',
-  '--window-size=1024,1024',
+  '--force-device-scale-factor=1',
   '--hide-scrollbars',
+  '--window-size=1024,1024',
   '--virtual-time-budget=2000',
   `--screenshot=${outPng}`,
   `file://${compiledPath}`
 ], { stdio: 'inherit' });
 
 execFileSync('python3', ['-c', `
+import os
 from PIL import Image
+
 im = Image.open("${outPng}")
 im.load()
-print("Raw rendered:", im.format, im.size, "bytes:", ${statSync(outPng).size})
-# Ensure crisp 1024x1024 and optimize PNG compression (or quantize if > 700 KB)
+print("Raw rendered:", im.format, im.size, "bytes:", os.path.getsize("${outPng}"))
 if im.size != (1024, 1024):
     im = im.resize((1024, 1024), Image.LANCZOS)
-im.save("${outPng}", format="PNG", optimize=True, compress_level=9)
-import os
+rgb = im.convert("RGB")
+rgb.save("${outPng}", format="PNG", optimize=True, compress_level=9)
 sz = os.path.getsize("${outPng}")
-print("Optimized PNG bytes:", sz)
-if sz > 850000:
-    q = im.convert("RGB").quantize(colors=256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
-    q.save("${outPng}", format="PNG", optimize=True)
-    print("Quantized PNG bytes:", os.path.getsize("${outPng}"))
-im.resize((300, 300), Image.LANCZOS).save("${thumbPng}", format="PNG", optimize=True)
+print("Lossless optimized PNG bytes:", sz)
+if sz > 620000:
+    q = rgb.quantize(colors=256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
+    q.save("${outPng}", format="PNG", optimize=True, compress_level=9)
+    print("Quantized 256-color PNG bytes:", os.path.getsize("${outPng}"))
+rgb.resize((300, 300), Image.LANCZOS).save("${thumbPng}", format="PNG", optimize=True, compress_level=9)
 Image.open("${outPng}").verify()
 print("Verified PNG integrity OK")
 `], { stdio: 'inherit' });

@@ -19,8 +19,16 @@ function inspectImage(buf: Buffer): { format: 'png' | 'jpeg'; width: number; hei
     }
     const width = buf.readUInt32BE(16);
     const height = buf.readUInt32BE(20);
+    const bitDepth = buf[24];
+    const colorType = buf[25];
     if (width < 1 || height < 1 || width > MAX_DIM || height > MAX_DIM) {
       throw new Error(`PNG dimensions ${width}x${height} exceed ${MAX_DIM}x${MAX_DIM}`);
+    }
+    if (bitDepth === 0 || (colorType !== 0 && colorType !== 2 && colorType !== 3 && colorType !== 4 && colorType !== 6)) {
+      throw new Error(`Invalid PNG color format: bitDepth=${bitDepth}, colorType=${colorType}`);
+    }
+    if (!buf.includes('IDAT')) {
+      throw new Error('PNG missing IDAT image data chunk');
     }
     return { format: 'png', width, height };
   }
@@ -43,7 +51,7 @@ mkdirSync(outDir, { recursive: true });
 writeFileSync(outPath, bytes);
 const written = readFileSync(outPath);
 const outDigest = createHash('sha256').update(written).digest('hex');
-if (outDigest !== digest) {
+if (outDigest !== digest || written.byteLength !== bytes.byteLength) {
   throw new Error(`Checksum mismatch after write: ${outDigest} !== ${digest}`);
 }
 console.log(JSON.stringify({ ok: true, format: meta.format, width: meta.width, height: meta.height, bytes: bytes.byteLength, sha256: digest }));
